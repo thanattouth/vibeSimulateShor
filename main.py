@@ -6,10 +6,11 @@ from shor.classical import gcd, is_prime
 from shor.quantum import quantum_order_finding
 
 
-def shor_factor(N):
+def shor_factor(N, show_circuit=False, show_histogram=False):
     """
     Attempt to factor N using Shor's algorithm.
     Returns a tuple of non-trivial factors or None if unsuccessful.
+    Passes visualization options to quantum_order_finding.
     """
     if N % 2 == 0:
         return 2, N // 2
@@ -24,7 +25,11 @@ def shor_factor(N):
         if d > 1:
             print(f"Found a non-trivial factor by GCD: {d}")
             return d, N // d
-        r = quantum_order_finding(a, N)
+        # Pass visualization options for small/medium N
+        if N <= 60:
+            r = quantum_order_finding(a, N, show_circuit=show_circuit, show_histogram=show_histogram)
+        else:
+            r = quantum_order_finding(a, N)
         print(f"Order r found: {r}")
         if r is None or r % 2 != 0:
             print("Order not found or not even, retrying...")
@@ -46,6 +51,7 @@ def main():
     """
     Main workflow for Shor's algorithm simulation.
     Prompts user for N, runs the algorithm, and prints the result.
+    Offers visualization options for quantum runs.
     """
     print("Custom Shor's Algorithm Simulation (not using qiskit.algorithms.Shor)")
     try:
@@ -53,7 +59,16 @@ def main():
     except ValueError:
         print("Invalid input. Using default N = 15.")
         N = 15
-    result = shor_factor(N)
+
+    show_circuit = False
+    show_histogram = False
+    if N <= 60:
+        ans = input("Show quantum circuit diagram? (y/N): ").strip().lower()
+        show_circuit = (ans == 'y')
+        ans = input("Show measurement histogram? (y/N): ").strip().lower()
+        show_histogram = (ans == 'y')
+
+    result = shor_factor(N, show_circuit=show_circuit, show_histogram=show_histogram)
     if result:
         print(f"\nNon-trivial factors of {N}: {result[0]} x {result[1]} = {N}")
     else:
