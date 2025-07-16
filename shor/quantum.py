@@ -73,24 +73,10 @@ def modular_exponentiation_arithmetic(qc, a, N, n, control_qubits, result_qubits
     """
     # Initialize result to 1
     qc.x(result_qubits[0])
-    
-    # For each control qubit, if it's 1, multiply result by a^(2^i) mod N
-    for i, control_qubit in enumerate(control_qubits):
-        # Compute a^(2^i) mod N classically (this is the bottleneck)
-        power = pow(a, 2**i, N)
-        
-        # Convert power to binary and create controlled addition
-        power_binary = format(power, f'0{n}b')
-        
-        # For each bit of the power, add 2^j to result if power_binary[j] == '1'
-        for j, bit in enumerate(power_binary):
-            if bit == '1' and j < len(result_qubits):
-                # Controlled addition of 2^j
-                qc.ccx(control_qubit, result_qubits[j], result_qubits[j])
-        
-        # Modular reduction: if result >= N, subtract N
-        # This is simplified - in practice, you'd need quantum comparison
-        pass
+    # Placeholder: real implementation would use ancilla and proper modular multiplication
+    # The previous ccx line caused a duplicate qubit error and is removed.
+    # TODO: Implement real controlled modular multiplication for quantum modular exponentiation.
+    pass
 
 
 def modular_exponentiation_gate(a, N, n):
@@ -113,11 +99,11 @@ def modular_exponentiation_gate(a, N, n):
     return UnitaryGate(U, label=f"ModExp_{a}^{N}")
 
 
-def quantum_order_finding(a, N, n_count=4, show_circuit=False, show_histogram=False):
+def quantum_order_finding(a, N, n_count=4, show_circuit=False, show_histogram=False, save_circuit=False, save_histogram=False, circuit_filename=None, histogram_filename=None):
     """
     Find the order r of a modulo N using a quantum circuit with modular exponentiation.
     Uses unitary matrix for small N, quantum arithmetic for medium N.
-    Optionally shows the circuit diagram and measurement histogram.
+    Optionally shows/saves the circuit diagram and measurement histogram.
     """
     # For very small N, fallback to classical brute-force
     if N < 8:
@@ -180,22 +166,34 @@ def quantum_order_finding(a, N, n_count=4, show_circuit=False, show_histogram=Fa
     qc.append(QFT(num_qubits=n_count, inverse=True, do_swaps=True), range(n_count))
     qc.measure(range(n_count), range(n_count))
 
-    # Show the circuit diagram if requested
-    if show_circuit:
+    # Show or save the circuit diagram if requested
+    if show_circuit or save_circuit:
         print("Quantum Circuit Diagram:")
-        qc.draw('mpl')
-        plt.show()
+        fig = qc.draw('mpl')
+        if show_circuit:
+            plt.show()
+        if save_circuit:
+            if not circuit_filename:
+                circuit_filename = f"circuit_N{N}_a{a}.png"
+            fig.savefig(circuit_filename)
+            print(f"[Info] Circuit diagram saved as {circuit_filename}")
 
     simulator = AerSimulator()
     compiled_circuit = transpile(qc, simulator)
     result = simulator.run(compiled_circuit, shots=1024).result()
     counts = result.get_counts()
 
-    # Show the measurement histogram if requested
-    if show_histogram:
+    # Show or save the measurement histogram if requested
+    if show_histogram or save_histogram:
         print("Measurement Histogram:")
-        plot_histogram(counts)
-        plt.show()
+        hist_fig = plot_histogram(counts)
+        if show_histogram:
+            plt.show()
+        if save_histogram:
+            if not histogram_filename:
+                histogram_filename = f"histogram_N{N}_a{a}.png"
+            hist_fig.savefig(histogram_filename)
+            print(f"[Info] Histogram saved as {histogram_filename}")
 
     measured = max(counts, key=counts.get)
     phase = int(measured, 2) / (2 ** n_count)
