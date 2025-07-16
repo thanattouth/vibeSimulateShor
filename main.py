@@ -1,0 +1,64 @@
+# Main entry point for custom Shor's algorithm simulation
+# This script will tie together the classical and quantum parts.
+
+import random
+from shor.classical import gcd, is_prime
+from shor.quantum import quantum_order_finding
+
+
+def shor_factor(N):
+    """
+    Attempt to factor N using Shor's algorithm.
+    Returns a tuple of non-trivial factors or None if unsuccessful.
+    """
+    if N % 2 == 0:
+        return 2, N // 2
+    if is_prime(N):
+        print(f"{N} is prime!")
+        return None
+
+    for attempt in range(5):  # Try a few random values
+        a = random.randrange(2, N)
+        print(f"\nAttempt {attempt+1}: Trying a = {a}")
+        d = gcd(a, N)
+        if d > 1:
+            print(f"Found a non-trivial factor by GCD: {d}")
+            return d, N // d
+        r = quantum_order_finding(a, N)
+        print(f"Order r found: {r}")
+        if r is None or r % 2 != 0:
+            print("Order not found or not even, retrying...")
+            continue
+        x = pow(a, r // 2, N)
+        if x == N - 1 or x == 1:
+            print("Trivial root found, retrying...")
+            continue
+        factor1 = gcd(x + 1, N)
+        factor2 = gcd(x - 1, N)
+        if 1 < factor1 < N:
+            return factor1, N // factor1
+        if 1 < factor2 < N:
+            return factor2, N // factor2
+    return None
+
+
+def main():
+    """
+    Main workflow for Shor's algorithm simulation.
+    Prompts user for N, runs the algorithm, and prints the result.
+    """
+    print("Custom Shor's Algorithm Simulation (not using qiskit.algorithms.Shor)")
+    try:
+        N = int(input("Enter a composite number to factor (default 15): ") or 15)
+    except ValueError:
+        print("Invalid input. Using default N = 15.")
+        N = 15
+    result = shor_factor(N)
+    if result:
+        print(f"\nNon-trivial factors of {N}: {result[0]} x {result[1]} = {N}")
+    else:
+        print(f"\nFailed to find non-trivial factors for {N}.")
+
+
+if __name__ == "__main__":
+    main() 
